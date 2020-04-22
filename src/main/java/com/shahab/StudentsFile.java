@@ -1,9 +1,11 @@
 package com.shahab;
 
-import avro.shaded.com.google.common.collect.Iterables;
 import lombok.Data;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
+
+import java.util.List;
+import java.util.Map;
 
 @Data
 public class StudentsFile {
@@ -32,11 +34,13 @@ public class StudentsFile {
     }
 
     public void groupAndSortByYear() {
-        rdd
+        List<Tuple2<String, Long>> collect = rdd
                 .filter(rawValue -> !rawValue.contains("student_id,exam_center_id,subject,year,quarter,score,grade"))
                 .mapToPair(rawValue -> new Tuple2<>(rawValue.split(",")[3], 1L))
-                .groupByKey()
-                .sortByKey()
-                .foreach(tuple -> System.out.println(tuple._1 + " has " + Iterables.size(tuple._2) + " instances"));
+                .collect();
+
+        GroupByAndSort group = new GroupByAndSort();
+        Map<String, Long> groupBy = group.groupBy(collect);
+        group.sortByKey(groupBy).forEach((year, count) -> System.out.println(year + " count: " + count));
     }
 }

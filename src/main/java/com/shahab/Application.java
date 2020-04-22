@@ -23,7 +23,7 @@ public class Application {
 
         //students.subjectAndLength();
         //System.out.println("Min grade: " + students.minGrade() + " Max grade: " + students.maxGrade());
-        //students.groupAndSortByYear();
+        students.groupAndSortByYear();
 
         sc.close();
     }
