@@ -29,12 +29,12 @@ public class Application {
         });
         return list.stream().map( pair -> pair._2).iterator();
     }
-    public static JavaRDD<Student> sort(JavaPairRDD<Integer,Student> rdd ){
+    public static JavaRDD<Student> sort( JavaPairRDD<Integer,Student> rdd ){
         int PARTS_NUMBER = 3;
         RangePartitioner rangePartitioner = new RangePartitioner( PARTS_NUMBER, rdd.rdd(), true, Ordering.Int$.MODULE$, ClassTag$.MODULE$.apply(Integer.class));
 
         JavaRDD<Student> sortedRDD = rdd.partitionBy( rangePartitioner)
-                                        .mapPartitions(it -> sort(it), true);
+                                        .mapPartitions( it -> sort(it), false);
 
         return sortedRDD;
     }
@@ -54,7 +54,7 @@ public class Application {
             }, false).map( line -> Student.of(line));
 
             JavaPairRDD<Integer,Student> yearRDD  = studentsRDD.mapToPair(s -> new Tuple2<>(s.getYear(), s));
-            JavaRDD<Student> sortedRDD = sort(yearRDD);
+            JavaRDD<Student> sortedRDD = sort( yearRDD);
             sortedRDD.take(10).forEach(System.out::println);
         }
 
