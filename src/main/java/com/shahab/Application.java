@@ -41,7 +41,9 @@ public class Application {
     public static void main( String [] args) {
         Logger.getLogger("org.apache").setLevel(Level.WARN);
         SparkConf conf = new SparkConf().setAppName("RDD Programming Guide")
-                                        .setMaster("local[*]");
+                                        .setMaster("local[*]")
+                                        .set("spark.ui.enabled","True")
+                                        .set("spark.ui.port","4040");
 
 
         try(JavaSparkContext sc = new JavaSparkContext(conf)){
@@ -55,6 +57,7 @@ public class Application {
 
             JavaPairRDD<Integer,Student> yearRDD  = studentsRDD.mapToPair(s -> new Tuple2<>(s.getYear(), s));
             JavaRDD<Student> sortedRDD = sort( yearRDD);
+
             sortedRDD.take(10).forEach(System.out::println);
         }
 
