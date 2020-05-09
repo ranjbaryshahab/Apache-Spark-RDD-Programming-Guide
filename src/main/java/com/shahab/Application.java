@@ -30,7 +30,7 @@ public class Application {
         return list.stream().map( pair -> pair._2).iterator();
     }
     public static JavaRDD<Student> sort( JavaPairRDD<Integer,Student> rdd ){
-        int PARTS_NUMBER = 3;
+        int PARTS_NUMBER = 1;
         RangePartitioner rangePartitioner = new RangePartitioner( PARTS_NUMBER, rdd.rdd(), true, Ordering.Int$.MODULE$, ClassTag$.MODULE$.apply(Integer.class));
 
         JavaRDD<Student> sortedRDD = rdd.partitionBy( rangePartitioner)
