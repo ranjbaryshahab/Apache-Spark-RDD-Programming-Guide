@@ -2,10 +2,15 @@ package com.shahab;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.RangePartitioner;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.storage.StorageLevel;
+import scala.Tuple2;
+import scala.math.Ordering;
+import scala.reflect.ClassTag$;
+
 
 public class Application {
     public static void main(String[] args) {
@@ -15,15 +20,33 @@ public class Application {
                         .setAppName("RDD Programming Guide")
                         .setMaster("local[*]");
         JavaSparkContext sc = new JavaSparkContext(conf);
-        JavaRDD<String> data = sc.textFile("src/main/resources/students.csv");
-        data.persist(StorageLevel.MEMORY_ONLY());
+        JavaRDD<String> studentsRDD = sc.textFile("src/main/resources/students.csv");
+        JavaPairRDD<Integer, Student> studentJavaPairRDD = studentsRDD
+                .filter(rawValue -> !rawValue.contains("student_id,exam_center_id,subject,year,quarter,score,grade"))
+                .map(rawValue -> {
+                    String[] line = rawValue.split(",");
+                    return new Student(
+                            Integer.parseInt(line[0]),
+                            Integer.parseInt(line[1]),
+                            line[2],
+                            Integer.parseInt(line[3]),
+                            Integer.parseInt(line[4]),
+                            Integer.parseInt(line[5]),
+                            line[6]
+                    );
+                })
+                .mapToPair(student -> new Tuple2<>(student.getYear(), student));
 
-        StudentsFile students = new StudentsFile();
-        students.setRdd(data);
+        RangePartitioner rangePartitioner =
+                new RangePartitioner(12, studentJavaPairRDD.rdd(), true, Ordering.Int$.MODULE$, ClassTag$.MODULE$.apply(Integer.class));
 
-        //students.subjectAndLength();
-        //System.out.println("Min grade: " + students.minGrade() + " Max grade: " + students.maxGrade());
-        students.groupAndSortByYear();
+        studentJavaPairRDD
+                .partitionBy(rangePartitioner)
+                .mapPartitions(tuple2Iterator -> {
+                    //todo
+                    return null;
+                }).
+                take(20).forEach(System.out::println);
 
         sc.close();
     }
