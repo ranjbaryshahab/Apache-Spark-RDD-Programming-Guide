@@ -1,5 +1,6 @@
 package com.shahab;
 
+import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.RangePartitioner;
@@ -11,9 +12,9 @@ import scala.Tuple2;
 import scala.math.Ordering;
 import scala.reflect.ClassTag$;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.io.Serializable;
+import java.util.*;
+import java.util.function.Function;
 
 
 public class Application {
@@ -37,6 +38,31 @@ public class Application {
                 .mapPartitions(Application::sort, false);
     }
 
+    public static <T> JavaRDD<Tuple2<Integer,T>> groupBy( JavaPairRDD<Integer, Student> rdd, AggFunction<T> fun) {
+        return rdd.mapPartitions(it -> {
+            Map<Integer,T> map = new HashMap<>();
+            while (it.hasNext()) {
+                Tuple2<Integer,Student> row = it.next();
+                Integer key = row._1;
+                Student std = row._2;
+                T buffer = map.getOrDefault( key, fun.getInitialValue());
+                map.put(key, fun.update(buffer, std));
+            }
+           Iterator<Map.Entry<Integer,T>> mapIterator = map.entrySet().iterator();
+           return new Iterator<Tuple2<Integer,T>>() {
+               @Override
+               public boolean hasNext() {
+                   return mapIterator.hasNext();
+               }
+
+               @Override
+               public Tuple2<Integer,T> next() {
+                   Map.Entry<Integer,T> entry = mapIterator.next();
+                   return new Tuple2<Integer,T>(entry.getKey(), entry.getValue());
+               }
+           };
+        });
+    }
     public static void main(String[] args) {
         Logger.getLogger("org.apache").setLevel(Level.WARN);
         SparkConf conf = new SparkConf().setAppName("RDD Programming Guide")
@@ -57,6 +83,11 @@ public class Application {
 
             JavaPairRDD<Integer, Student> yearRDD = studentsRDD.mapToPair(s -> new Tuple2<>(s.getYear(), s));
             JavaRDD<Student> sortedRDD = sort(yearRDD);
+
+            groupBy( yearRDD, new SumAggFunction((Function<Student,Double> & Serializable) (Student std)->std.getScore().doubleValue())).take(10).forEach(System.out::println);
+
+            groupBy( yearRDD, new CountAggFunction(
+                    (Function<Student,String> & Serializable) (Student std)->std.getGrade())).take(10).forEach(System.out::println);
 
             sortedRDD.saveAsTextFile("src/main/resources/result.txt");
         }
