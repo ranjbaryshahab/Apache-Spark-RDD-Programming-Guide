@@ -93,4 +93,17 @@ public class Student implements Serializable{
                 ", grade='" + grade + '\'' +
                 '}';
     }
+
+    static public Student of(String line) {
+        String[] arr = line.split(",");
+        return new Student(
+                Integer.parseInt(arr[0]),
+                Integer.parseInt(arr[1]),
+                arr[2],
+                Integer.parseInt(arr[3]),
+                Integer.parseInt(arr[4]),
+                Integer.parseInt(arr[5]),
+                arr[6]
+        );
+    }
 }
